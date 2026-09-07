@@ -10,7 +10,7 @@
     "lint": "eslint",
     "db:check": "tsx prisma/reset.ts",
     "db:wipe": "tsx prisma/reset.ts --confirm",
-    "db:reset": "tsx prisma/reset.ts --confirm && tsx prisma/seed.ts",
+    "db:reset": "tsx prisma/reset.ts --confirm --all && tsx prisma/seed.ts",
     "db:seed": "tsx prisma/seed.ts",
     "set-admin": "tsx prisma/set-admin.ts",
     "verify:gating": "tsx scripts/verify-role-gating.ts"
