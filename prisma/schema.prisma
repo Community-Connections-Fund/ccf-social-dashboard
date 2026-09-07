@@ -18,6 +18,10 @@ model User {
   id    String @id @default(cuid())
   name  String
   email String @unique
+  // The Supabase Auth account this staff record belongs to, linked on first
+  // sign-in. Null means the person has been added by an admin but has not logged
+  // in yet. Passwords live in Supabase, never in this table.
+  authId String? @unique
   role  String @default("EDITOR")
 
   ownedPosts     Post[]          @relation("PostOwner")
