@@ -1,0 +1,147 @@
+// CCF Social Media Dashboard — data model
+//
+// Status/platform/role columns are plain strings rather than DB enums: SQLite has no
+// enum support, and keeping them as strings means this same schema runs unchanged on
+// Postgres when the app moves to shared hosting. The allowed values live in
+// src/lib/workflow.ts, which is the single source of truth.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id    String @id @default(cuid())
+  name  String
+  email String @unique
+  role  String @default("EDITOR")
+
+  ownedPosts     Post[]          @relation("PostOwner")
+  approvalEvents ApprovalEvent[]
+
+  createdAt DateTime @default(now())
+}
+
+model ContentPillar {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  sortOrder   Int     @default(0)
+
+  posts       Post[]
+  bankEntries ContentBankEntry[]
+}
+
+model Post {
+  id            String    @id @default(cuid())
+  title         String
+  status        String    @default("IDEA")
+  platform      String?
+  caption       String?
+  graphicStatus String    @default("NOT_STARTED")
+  publishDate   DateTime?
+
+  contentPillarId String?
+  contentPillar   ContentPillar? @relation(fields: [contentPillarId], references: [id])
+
+  ownerId String?
+  owner   User?   @relation("PostOwner", fields: [ownerId], references: [id])
+
+  alumnusId String?
+  alumnus   Alumnus? @relation(fields: [alumnusId], references: [id])
+
+  bankEntryId String?
+  bankEntry   ContentBankEntry? @relation(fields: [bankEntryId], references: [id])
+
+  approvalEvents ApprovalEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([publishDate])
+  @@index([status])
+}
+
+model ApprovalEvent {
+  id         String  @id @default(cuid())
+  postId     String
+  post       Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  fromStatus String?
+  toStatus   String
+  note       String?
+
+  actorId String?
+  actor   User?   @relation(fields: [actorId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+}
+
+model ContentBankEntry {
+  id               String    @id @default(cuid())
+  idea             String
+  captionDraft     String?
+  evergreen        Boolean   @default(true)
+  graphicNeeded    Boolean   @default(false)
+  lastPosted       DateTime?
+  performanceNotes String?
+
+  contentPillarId String?
+  contentPillar   ContentPillar? @relation(fields: [contentPillarId], references: [id])
+
+  posts Post[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Alumnus {
+  id                  String  @id @default(cuid())
+  name                String
+  cohortYear          Int?
+  currentOrganization String?
+  currentRole         String?
+  linkedin            String?
+  featuredStatus      String  @default("NOT_FEATURED")
+  careerUpdates       String?
+  awards              String?
+  boardMemberships    String?
+  storyCollected      Boolean @default(false)
+
+  posts Post[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AssetLink {
+  id       String  @id @default(cuid())
+  title    String
+  category String
+  url      String
+  notes    String?
+
+  createdAt DateTime @default(now())
+}
+
+model AnalyticsSnapshot {
+  id          String   @id @default(cuid())
+  periodStart DateTime
+  periodEnd   DateTime
+  platform    String
+  followers   Int?
+  reach       Int?
+  engagement  Int?
+  impressions Int?
+  clicks      Int?
+  notes       String?
+
+  createdAt DateTime @default(now())
+
+  @@index([periodStart])
+}

@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# local sqlite database
+*.db
+*.db-journal
+
+# Prisma writes an identical copy of its skill docs per AI editor. They are
+# regenerable and tracked by skills-lock.json, so keep them out of the repo.
+/.agents/
+/.windsurf/
+/.claude/skills/
+/.claude/settings.local.json
