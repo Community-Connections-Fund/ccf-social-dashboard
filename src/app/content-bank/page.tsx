@@ -7,10 +7,15 @@ import {
 } from "@/components/ui";
 import { formatMedium } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/session";
 
 export default async function ContentBankPage({
   searchParams,
 }: PageProps<"/content-bank">) {
+  // Every page resolves the session itself. proxy.ts is an optimistic redirect,
+  // not access control, and a page must not be readable if it is bypassed.
+  await getCurrentUser();
+
   const params = await searchParams;
   const query = typeof params.q === "string" ? params.q.trim() : "";
   const pillarId = typeof params.pillar === "string" ? params.pillar : "";

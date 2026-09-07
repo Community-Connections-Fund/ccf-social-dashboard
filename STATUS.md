@@ -60,6 +60,34 @@ committed and must not be pasted into a chat.
 - Alumni email addresses are visible only to Admin and Editor, enforced by not selecting the
   columns at all — verified by `npm run verify:gating`
 
+## Security review — partially completed 7 Sep 2026
+
+An adversarial review was run over the auth code. It **did not finish**: 8 of 10 agents died on
+a usage limit, so the two lenses below never ran. Three findings from the lenses that did run
+were fixed:
+
+- Seven pages (dashboard, calendar, calendar/new, content-bank, content-bank/new, assets,
+  analytics) rendered live data without resolving the session, relying only on `proxy.ts`.
+  Every page now calls `getCurrentUser()`.
+- `proxy.ts` allowed requests through when the Supabase environment variables were missing, so
+  one forgotten variable on a deployment would have published the dashboard. It now fails
+  closed.
+- `updateAlumnus` wrote contact fields unconditionally. Since the edit form only renders those
+  inputs for Admin/Editor, a Reviewer saving a record erased both email addresses. Contact
+  fields are now only written by roles allowed to see them.
+
+**Still unreviewed — do these before deploying:**
+
+1. **PII exposure paths** — every route that reads the Alumnus model, `include` vs `select`,
+   error messages, server logs, prefilled form fields.
+2. **Account lifecycle** — email changes after `authId` linking, recycled addresses, whether
+   removing a staff member truly revokes access given their Supabase account still exists.
+
+**Open design question, not yet decided:** `requireEditor()` in the calendar, alumni and
+content-bank actions blocks only VIEWER, so a REVIEWER can create, edit and delete content.
+The Staff page describes a Reviewer as someone who approves posts. Either the code should
+restrict writes to Admin/Editor, or the role description should say Reviewers can also edit.
+
 ## Not done
 
 1. **Deploy to Vercel.** Accounts exist. Needs env vars set in Vercel and a first deploy.

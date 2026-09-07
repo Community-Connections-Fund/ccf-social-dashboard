@@ -4,12 +4,17 @@ import {
   ASSET_CATEGORY_LABELS,
   type AssetCategory,
 } from "@/lib/workflow";
+import { getCurrentUser } from "@/lib/session";
 
 // This page reads live data. Without this, Next prerenders it at build time and
 // the numbers never change again.
 export const dynamic = "force-dynamic";
 
 export default async function AssetsPage() {
+  // Every page resolves the session itself. proxy.ts is an optimistic redirect,
+  // not access control, and a page must not be readable if it is bypassed.
+  await getCurrentUser();
+
   const assets = await prisma.assetLink.findMany({ orderBy: { title: "asc" } });
 
   return (

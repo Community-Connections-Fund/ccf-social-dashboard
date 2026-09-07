@@ -23,6 +23,7 @@ import {
   type Platform,
   type PostStatus,
 } from "@/lib/workflow";
+import { getCurrentUser } from "@/lib/session";
 
 type CalendarPost = {
   id: string;
@@ -37,6 +38,10 @@ const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export default async function CalendarPage({
   searchParams,
 }: PageProps<"/calendar">) {
+  // Every page resolves the session itself. proxy.ts is an optimistic redirect,
+  // not access control, and a page must not be readable if it is bypassed.
+  await getCurrentUser();
+
   const params = await searchParams;
   const view = params.view === "week" ? "week" : "month";
   const platformFilter =

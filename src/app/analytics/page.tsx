@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { PLATFORM_LABELS, type Platform } from "@/lib/workflow";
+import { getCurrentUser } from "@/lib/session";
 
 // This page reads live data. Without this, Next prerenders it at build time and
 // the numbers never change again.
@@ -12,6 +13,10 @@ const dateFormat = new Intl.DateTimeFormat("en-US", {
 });
 
 export default async function AnalyticsPage() {
+  // Every page resolves the session itself. proxy.ts is an optimistic redirect,
+  // not access control, and a page must not be readable if it is bypassed.
+  await getCurrentUser();
+
   const snapshots = await prisma.analyticsSnapshot.findMany({
     orderBy: { periodStart: "desc" },
     take: 24,

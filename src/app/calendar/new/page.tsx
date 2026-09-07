@@ -2,10 +2,15 @@ import Link from "next/link";
 import { PostForm } from "@/components/post-form";
 import { prisma } from "@/lib/prisma";
 import { createPost } from "../actions";
+import { getCurrentUser } from "@/lib/session";
 
 export default async function NewPostPage({
   searchParams,
 }: PageProps<"/calendar/new">) {
+  // Every page resolves the session itself. proxy.ts is an optimistic redirect,
+  // not access control, and a page must not be readable if it is bypassed.
+  await getCurrentUser();
+
   const params = await searchParams;
   const [pillars, alumni, bankEntry] = await Promise.all([
     prisma.contentPillar.findMany({

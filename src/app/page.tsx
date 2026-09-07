@@ -2,6 +2,7 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
 import { prisma } from "@/lib/prisma";
 import { POST_STATUSES, STATUS_LABELS, type PostStatus } from "@/lib/workflow";
+import { getCurrentUser } from "@/lib/session";
 
 // This page reads live data. Without this, Next prerenders it at build time and
 // the numbers never change again.
@@ -28,6 +29,10 @@ const PRIORITIES = [
 ];
 
 export default async function DashboardPage() {
+  // Every page resolves the session itself. proxy.ts is an optimistic redirect,
+  // not access control, and a page must not be readable if it is bypassed.
+  await getCurrentUser();
+
   const [posts, alumniCount, storiesCollected, bankCount, upcoming] =
     await Promise.all([
       prisma.post.findMany({ select: { status: true } }),

@@ -15,15 +15,28 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/login"];
 
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+}
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Without configuration there is no session to read. Let the request through so
-  // the page itself can report the misconfiguration clearly.
-  if (!url || !key) return response;
+  // Misconfiguration must not mean open access. Without these values no session
+  // can be read, so nobody can be signed in — send everything to /login rather
+  // than letting requests past. A forgotten environment variable on a new
+  // deployment would otherwise publish the whole dashboard.
+  if (!url || !key) {
+    if (isPublicPath(request.nextUrl.pathname)) return response;
+    const login = request.nextUrl.clone();
+    login.pathname = "/login";
+    return NextResponse.redirect(login);
+  }
 
   const supabase = createServerClient(url, key, {
     cookies: {
@@ -44,12 +57,7 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`),
-  );
-
-  if (!user && !isPublic) {
+  if (!user && !isPublicPath(request.nextUrl.pathname)) {
     const login = request.nextUrl.clone();
     login.pathname = "/login";
     return NextResponse.redirect(login);
