@@ -33,13 +33,23 @@ async function main() {
     pillars.set(name, pillar.id);
   }
 
+  // The first administrator comes from .env rather than being hardcoded, so
+  // running db:reset before the real import cannot silently restore a stale
+  // address and lock the actual admin out of their own dashboard.
+  const adminEmail = (process.env.ADMIN_EMAIL ?? "").trim().toLowerCase();
+  if (!adminEmail) {
+    throw new Error(
+      "Set ADMIN_EMAIL in .env to the address that should own this dashboard.",
+    );
+  }
+
   const charles = await prisma.user.upsert({
-    where: { email: "charles@everyoneeq.com" },
-    update: {},
+    where: { email: adminEmail },
+    update: { role: "ADMIN" },
     create: {
-      id: "seed-user-charles",
-      name: "Charles Yang",
-      email: "charles@everyoneeq.com",
+      id: "seed-user-admin",
+      name: process.env.ADMIN_NAME?.trim() || "Administrator",
+      email: adminEmail,
       role: "ADMIN",
     },
   });

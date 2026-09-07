@@ -10,7 +10,8 @@
     "db:check": "tsx prisma/reset.ts",
     "db:wipe": "tsx prisma/reset.ts --confirm",
     "db:reset": "tsx prisma/reset.ts --confirm && tsx prisma/seed.ts",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "set-admin": "tsx prisma/set-admin.ts"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.10.0",
