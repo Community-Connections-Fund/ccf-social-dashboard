@@ -1,6 +1,8 @@
+import { Field, buttonClass, inputClass } from "@/components/ui";
 import { prisma } from "@/lib/prisma";
-import { PLATFORM_LABELS, type Platform } from "@/lib/workflow";
+import { PLATFORMS, PLATFORM_LABELS, type Platform } from "@/lib/workflow";
 import { getCurrentUser } from "@/lib/session";
+import { addSnapshot } from "./actions";
 
 // This page reads live data. Without this, Next prerenders it at build time and
 // the numbers never change again.
@@ -31,6 +33,83 @@ export default async function AnalyticsPage() {
           growth over time.
         </p>
       </header>
+
+      <section className="mt-6 rounded-lg border border-slate-200 bg-white p-4">
+        <h2 className="text-sm font-medium text-slate-900">Record numbers</h2>
+        <p className="mt-1 text-xs text-slate-500">
+          One entry per platform per period. Leave a box blank if you did not
+          record it — blank is kept as “not recorded” rather than zero.
+        </p>
+
+        <form action={addSnapshot} className="mt-3 flex flex-col gap-3">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Period start" htmlFor="periodStart">
+              <input
+                id="periodStart"
+                name="periodStart"
+                type="date"
+                required
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Period end" htmlFor="periodEnd">
+              <input
+                id="periodEnd"
+                name="periodEnd"
+                type="date"
+                required
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Platform" htmlFor="platform">
+              <select id="platform" name="platform" className={inputClass}>
+                {PLATFORMS.map((platform) => (
+                  <option key={platform} value={platform}>
+                    {PLATFORM_LABELS[platform]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-5">
+            {(
+              [
+                ["followers", "Followers"],
+                ["reach", "Reach"],
+                ["engagement", "Engagement"],
+                ["impressions", "Impressions"],
+                ["clicks", "Clicks"],
+              ] as const
+            ).map(([name, label]) => (
+              <Field key={name} label={label} htmlFor={name}>
+                <input
+                  id={name}
+                  name={name}
+                  type="number"
+                  min={0}
+                  className={inputClass}
+                />
+              </Field>
+            ))}
+          </div>
+
+          <Field label="Notes" htmlFor="notes">
+            <input
+              id="notes"
+              name="notes"
+              className={inputClass}
+              placeholder="What drove the change this period."
+            />
+          </Field>
+
+          <div>
+            <button type="submit" className={buttonClass}>
+              Save entry
+            </button>
+          </div>
+        </form>
+      </section>
 
       {snapshots.length === 0 ? (
         <div className="mt-6 rounded-lg border border-dashed border-slate-300 bg-white px-4 py-6">
