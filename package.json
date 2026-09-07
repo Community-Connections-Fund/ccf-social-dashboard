@@ -11,7 +11,8 @@
     "db:wipe": "tsx prisma/reset.ts --confirm",
     "db:reset": "tsx prisma/reset.ts --confirm && tsx prisma/seed.ts",
     "db:seed": "tsx prisma/seed.ts",
-    "set-admin": "tsx prisma/set-admin.ts"
+    "set-admin": "tsx prisma/set-admin.ts",
+    "verify:gating": "tsx scripts/verify-role-gating.ts"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.10.0",
