@@ -23,9 +23,11 @@ export default async function ContentBankPage({
           query
             ? {
                 OR: [
-                  { idea: { contains: query } },
-                  { captionDraft: { contains: query } },
-                  { performanceNotes: { contains: query } },
+                  { idea: { contains: query, mode: "insensitive" } },
+                  { captionDraft: { contains: query, mode: "insensitive" } },
+                  {
+                    performanceNotes: { contains: query, mode: "insensitive" },
+                  },
                 ],
               }
             : {},

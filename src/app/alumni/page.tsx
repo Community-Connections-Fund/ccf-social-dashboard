@@ -26,13 +26,15 @@ export default async function AlumniPage({
   // Email columns are only queried for roles allowed to see them, so they never
   // reach the page for anyone else.
   const alumni = await prisma.alumnus.findMany({
+    // `mode: insensitive` matters on Postgres, where `contains` is case-sensitive
+    // by default — without it, searching "google" would miss "Google".
     where: query
       ? {
           OR: [
-            { firstName: { contains: query } },
-            { lastName: { contains: query } },
-            { currentOrganization: { contains: query } },
-            { boardMemberships: { contains: query } },
+            { firstName: { contains: query, mode: "insensitive" } },
+            { lastName: { contains: query, mode: "insensitive" } },
+            { currentOrganization: { contains: query, mode: "insensitive" } },
+            { boardMemberships: { contains: query, mode: "insensitive" } },
           ],
         }
       : undefined,

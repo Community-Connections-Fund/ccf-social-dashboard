@@ -1,13 +1,19 @@
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
 
 function createPrismaClient() {
-  const adapter = new PrismaBetterSqlite3({
-    url: process.env.DATABASE_URL ?? "file:./dev.db",
-  });
-  return new PrismaClient({ adapter });
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error(
+      "DATABASE_URL is not set. Add the Supabase connection strings to .env.",
+    );
+  }
+
+  return new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 }
 
+// Next.js hot-reloads modules in development, which would otherwise open a new
+// pool on every edit until Postgres refuses connections.
 const globalForPrisma = globalThis as unknown as {
   prisma?: ReturnType<typeof createPrismaClient>;
 };

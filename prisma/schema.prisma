@@ -1,9 +1,9 @@
 // CCF Social Media Dashboard — data model
 //
-// Status/platform/role columns are plain strings rather than DB enums: SQLite has no
-// enum support, and keeping them as strings means this same schema runs unchanged on
-// Postgres when the app moves to shared hosting. The allowed values live in
-// src/lib/workflow.ts, which is the single source of truth.
+// Status/platform/role columns are plain strings rather than DB enums. That started
+// as a SQLite constraint and is kept deliberately: changing an allowed value is a
+// code change in src/lib/workflow.ts rather than a database migration. That file is
+// the single source of truth for the permitted values.
 
 generator client {
   provider = "prisma-client"
@@ -11,7 +11,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model User {
