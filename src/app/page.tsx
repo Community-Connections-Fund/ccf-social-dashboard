@@ -3,6 +3,10 @@ import { StatusBadge } from "@/components/status-badge";
 import { prisma } from "@/lib/prisma";
 import { POST_STATUSES, STATUS_LABELS, type PostStatus } from "@/lib/workflow";
 
+// This page reads live data. Without this, Next prerenders it at build time and
+// the numbers never change again.
+export const dynamic = "force-dynamic";
+
 const dateFormat = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",

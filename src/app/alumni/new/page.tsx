@@ -4,6 +4,10 @@ import { getCurrentUser } from "@/lib/session";
 import { canViewContactInfo, type Role } from "@/lib/workflow";
 import { createAlumnus } from "../actions";
 
+// This page reads live data. Without this, Next prerenders it at build time and
+// the numbers never change again.
+export const dynamic = "force-dynamic";
+
 export default async function NewAlumnusPage() {
   const user = await getCurrentUser();
 

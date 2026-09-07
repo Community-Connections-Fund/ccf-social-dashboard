@@ -5,6 +5,10 @@ import {
   type AssetCategory,
 } from "@/lib/workflow";
 
+// This page reads live data. Without this, Next prerenders it at build time and
+// the numbers never change again.
+export const dynamic = "force-dynamic";
+
 export default async function AssetsPage() {
   const assets = await prisma.assetLink.findMany({ orderBy: { title: "asc" } });
 

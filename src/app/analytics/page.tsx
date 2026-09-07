@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { PLATFORM_LABELS, type Platform } from "@/lib/workflow";
 
+// This page reads live data. Without this, Next prerenders it at build time and
+// the numbers never change again.
+export const dynamic = "force-dynamic";
+
 const dateFormat = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",

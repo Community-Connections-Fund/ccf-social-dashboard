@@ -3,6 +3,10 @@ import { BankForm } from "@/components/bank-form";
 import { prisma } from "@/lib/prisma";
 import { createBankEntry } from "../actions";
 
+// This page reads live data. Without this, Next prerenders it at build time and
+// the numbers never change again.
+export const dynamic = "force-dynamic";
+
 export default async function NewBankEntryPage() {
   const pillars = await prisma.contentPillar.findMany({
     select: { id: true, name: true },
