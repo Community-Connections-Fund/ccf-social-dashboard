@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { GrowthChart, type GrowthSeries } from "@/components/growth-chart";
 import { Field, buttonClass, inputClass } from "@/components/ui";
 import { prisma } from "@/lib/prisma";
 import { PLATFORMS, PLATFORM_LABELS, type Platform } from "@/lib/workflow";
@@ -19,10 +21,45 @@ export default async function AnalyticsPage() {
   // not access control, and a page must not be readable if it is bypassed.
   await getCurrentUser();
 
-  const snapshots = await prisma.analyticsSnapshot.findMany({
-    orderBy: { periodStart: "desc" },
-    take: 24,
-  });
+  const [snapshots, topPosts] = await Promise.all([
+    prisma.analyticsSnapshot.findMany({
+      orderBy: { periodStart: "desc" },
+      take: 24,
+    }),
+    // Only published posts that actually have a number recorded — an unmeasured
+    // post is not a poorly performing one, and ranking it as such would be a lie.
+    prisma.post.findMany({
+      where: { status: "PUBLISHED", engagement: { not: null } },
+      select: {
+        id: true,
+        title: true,
+        platform: true,
+        publishDate: true,
+        engagement: true,
+        reach: true,
+        clicks: true,
+        contentPillar: { select: { name: true } },
+      },
+      orderBy: { engagement: "desc" },
+      take: 10,
+    }),
+  ]);
+
+  // Followers over time, one line per platform, oldest first.
+  const growth: GrowthSeries[] = PLATFORMS.map((platform) => ({
+    platform,
+    label: PLATFORM_LABELS[platform],
+    points: snapshots
+      .filter((s) => s.platform === platform && s.followers !== null)
+      .sort((a, b) => a.periodStart.getTime() - b.periodStart.getTime())
+      .map((s) => ({
+        date: s.periodEnd.toISOString().slice(0, 10),
+        label: dateFormat.format(s.periodEnd),
+        value: s.followers as number,
+      })),
+  })).filter((series) => series.points.length > 0);
+
+  const bestEngagement = topPosts[0]?.engagement ?? 0;
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -109,6 +146,74 @@ export default async function AnalyticsPage() {
             </button>
           </div>
         </form>
+      </section>
+
+      {growth.length > 0 ? (
+        <section className="mt-6 rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="text-sm font-medium text-slate-900">
+            Follower growth over time
+          </h2>
+          <div className="mt-3">
+            <GrowthChart series={growth} />
+          </div>
+        </section>
+      ) : null}
+
+      <section className="mt-6 rounded-lg border border-slate-200 bg-white p-4">
+        <h2 className="text-sm font-medium text-slate-900">
+          Top performing posts
+        </h2>
+        {topPosts.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-500">
+            Nothing to rank yet. Open a published post and record how it did —
+            posts appear here once they have an engagement number.
+          </p>
+        ) : (
+          <ol className="mt-3 flex flex-col gap-2">
+            {topPosts.map((post, index) => (
+              <li key={post.id} className="flex items-center gap-3">
+                <span className="w-5 shrink-0 text-xs text-slate-400">
+                  {index + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <Link
+                    href={`/calendar/${post.id}`}
+                    className="block truncate text-sm font-medium text-slate-900 hover:underline"
+                  >
+                    {post.title}
+                  </Link>
+                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full bg-slate-900"
+                      style={{
+                        width: `${bestEngagement ? Math.max(4, ((post.engagement ?? 0) / bestEngagement) * 100) : 0}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {[
+                      post.platform
+                        ? PLATFORM_LABELS[post.platform as Platform]
+                        : null,
+                      post.contentPillar?.name,
+                      post.publishDate
+                        ? dateFormat.format(post.publishDate)
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right text-xs text-slate-600">
+                  <p className="font-medium text-slate-900">
+                    {post.engagement?.toLocaleString()}
+                  </p>
+                  <p className="text-slate-400">engagement</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
       </section>
 
       {snapshots.length === 0 ? (

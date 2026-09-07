@@ -49,6 +49,11 @@ model Post {
   graphicStatus String    @default("NOT_STARTED")
   // Link to the finished graphic — usually a Canva export sitting in Drive.
   graphicUrl    String?
+  // How the post actually did. Recorded by hand after publishing; an automated
+  // pull from the platform APIs would fill these same columns.
+  reach         Int?
+  engagement    Int?
+  clicks        Int?
   publishDate   DateTime?
 
   contentPillarId String?

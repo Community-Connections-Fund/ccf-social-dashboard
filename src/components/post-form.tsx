@@ -19,6 +19,9 @@ export type PostFormValues = {
   publishDate: Date | null;
   contentPillarId: string | null;
   alumnusId: string | null;
+  reach?: number | null;
+  engagement?: number | null;
+  clicks?: number | null;
 };
 
 export function PostForm({
@@ -157,6 +160,38 @@ export function PostForm({
           placeholder="Write the post exactly as it should go out."
         />
       </Field>
+
+      {values.id ? (
+        <fieldset className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <legend className="px-1 text-sm font-medium text-slate-900">
+            How it performed
+          </legend>
+          <p className="text-xs text-slate-500">
+            Fill these in after the post goes out. They drive the top-performing
+            list on Analytics. Leave blank if you have not checked yet.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            {(
+              [
+                ["reach", "Reach", values.reach],
+                ["engagement", "Engagement", values.engagement],
+                ["clicks", "Clicks", values.clicks],
+              ] as const
+            ).map(([name, label, value]) => (
+              <Field key={name} label={label} htmlFor={name}>
+                <input
+                  id={name}
+                  name={name}
+                  type="number"
+                  min={0}
+                  defaultValue={value ?? ""}
+                  className={inputClass}
+                />
+              </Field>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
 
       <div className="flex gap-2">
         <button type="submit" className={buttonClass}>

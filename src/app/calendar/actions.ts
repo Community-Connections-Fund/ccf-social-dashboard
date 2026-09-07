@@ -33,6 +33,15 @@ function optionOrNull<T extends string>(
     : null;
 }
 
+// Blank stays blank: a post nobody has measured is not a post that scored zero,
+// and zeroes would drag the top-performing ranking into fiction.
+function count(formData: FormData, key: string): number | null {
+  const raw = String(formData.get(key) ?? "").trim();
+  if (raw === "") return null;
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 ? Math.round(value) : null;
+}
+
 /** Shared shape for create and edit, so the two cannot drift apart. */
 function postFieldsFrom(formData: FormData) {
   const publishDate = text(formData, "publishDate");
@@ -50,6 +59,9 @@ function postFieldsFrom(formData: FormData) {
     publishDate: publishDate ? dateFromKey(publishDate) : null,
     contentPillarId: text(formData, "contentPillarId"),
     alumnusId: text(formData, "alumnusId"),
+    reach: count(formData, "reach"),
+    engagement: count(formData, "engagement"),
+    clicks: count(formData, "clicks"),
   };
 }
 

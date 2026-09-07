@@ -23,6 +23,9 @@ export default async function EditPostPage({
         publishDate: true,
         contentPillarId: true,
         alumnusId: true,
+        reach: true,
+        engagement: true,
+        clicks: true,
       },
     }),
     prisma.contentPillar.findMany({
