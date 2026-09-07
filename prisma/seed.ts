@@ -44,7 +44,8 @@ async function main() {
   const alumni = [
     {
       id: "seed-alum-jane-doe",
-      name: "Jane Doe",
+      firstName: "Jane",
+      lastName: "Doe",
       cohortYear: 2025,
       currentOrganization: "Google",
       currentRole: "CMO",
@@ -52,7 +53,8 @@ async function main() {
     },
     {
       id: "seed-alum-john-smith",
-      name: "John Smith",
+      firstName: "John",
+      lastName: "Smith",
       cohortYear: 2024,
       currentOrganization: "Amazon",
       currentRole: "Driver",

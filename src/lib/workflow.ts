@@ -41,6 +41,19 @@ export const ROLE_LABELS: Record<Role, string> = {
 // person who drafts a post isn't the one clearing it to publish.
 const APPROVER_ROLES: Role[] = ["ADMIN", "REVIEWER"];
 
+// Alumni email addresses are personal data belonging to third parties, not
+// organizational content. They stay with the roles that actually do outreach, and
+// are never selected for list views — see src/app/alumni/page.tsx.
+const CONTACT_ROLES: Role[] = ["ADMIN", "EDITOR"];
+
+export function canViewContactInfo(role: Role): boolean {
+  return CONTACT_ROLES.includes(role);
+}
+
+export function canImportAlumni(role: Role): boolean {
+  return CONTACT_ROLES.includes(role);
+}
+
 export function nextStatus(status: PostStatus): PostStatus | null {
   const i = POST_STATUSES.indexOf(status);
   return i < POST_STATUSES.length - 1 ? POST_STATUSES[i + 1] : null;

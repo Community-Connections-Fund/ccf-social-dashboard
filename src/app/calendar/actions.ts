@@ -1,21 +1,110 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { dateFromKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import {
+  GRAPHIC_STATUSES,
+  PLATFORMS,
   canTransition,
   isPostStatus,
   nextStatus,
   previousStatus,
+  type GraphicStatus,
+  type Platform,
   type Role,
 } from "@/lib/workflow";
+
+function text(formData: FormData, key: string): string | null {
+  const value = formData.get(key);
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
+
+function optionOrNull<T extends string>(
+  value: string | null,
+  allowed: readonly T[],
+): T | null {
+  return value && (allowed as readonly string[]).includes(value)
+    ? (value as T)
+    : null;
+}
+
+/** Shared shape for create and edit, so the two cannot drift apart. */
+function postFieldsFrom(formData: FormData) {
+  const publishDate = text(formData, "publishDate");
+
+  return {
+    title: text(formData, "title") ?? "Untitled post",
+    caption: text(formData, "caption"),
+    graphicUrl: text(formData, "graphicUrl"),
+    platform: optionOrNull<Platform>(text(formData, "platform"), PLATFORMS),
+    graphicStatus:
+      optionOrNull<GraphicStatus>(
+        text(formData, "graphicStatus"),
+        GRAPHIC_STATUSES,
+      ) ?? "NOT_STARTED",
+    publishDate: publishDate ? dateFromKey(publishDate) : null,
+    contentPillarId: text(formData, "contentPillarId"),
+    alumnusId: text(formData, "alumnusId"),
+  };
+}
+
+async function requireEditor() {
+  const user = await getCurrentUser();
+  if ((user.role as Role) === "VIEWER") {
+    throw new Error("Your role cannot change posts.");
+  }
+  return user;
+}
+
+export async function createPost(formData: FormData) {
+  const user = await requireEditor();
+  const fields = postFieldsFrom(formData);
+
+  const post = await prisma.post.create({
+    data: { ...fields, status: "IDEA", ownerId: user.id },
+  });
+
+  await prisma.approvalEvent.create({
+    data: {
+      postId: post.id,
+      fromStatus: null,
+      toStatus: "IDEA",
+      note: "Created",
+      actorId: user.id,
+    },
+  });
+
+  revalidatePath("/calendar");
+  revalidatePath("/");
+  redirect(`/calendar/${post.id}`);
+}
+
+export async function updatePost(formData: FormData) {
+  await requireEditor();
+  const id = String(formData.get("postId") ?? "");
+  if (!id) throw new Error("Missing post id.");
+
+  await prisma.post.update({
+    where: { id },
+    data: postFieldsFrom(formData),
+  });
+
+  revalidatePath("/calendar");
+  revalidatePath(`/calendar/${id}`);
+  revalidatePath("/");
+  redirect(`/calendar/${id}`);
+}
 
 export async function movePost(formData: FormData) {
   const postId = String(formData.get("postId") ?? "");
   const direction = String(formData.get("direction") ?? "");
 
-  const user = await getCurrentUser();
+  const user = await requireEditor();
   const post = await prisma.post.findUniqueOrThrow({ where: { id: postId } });
 
   if (!isPostStatus(post.status)) {
@@ -42,11 +131,29 @@ export async function movePost(formData: FormData) {
         postId,
         fromStatus: post.status,
         toStatus: target,
+        note: text(formData, "note"),
         actorId: user.id,
       },
     }),
   ]);
 
   revalidatePath("/calendar");
+  revalidatePath(`/calendar/${postId}`);
   revalidatePath("/");
+}
+
+export async function deletePost(formData: FormData) {
+  const user = await getCurrentUser();
+  if ((user.role as Role) !== "ADMIN") {
+    throw new Error("Only an admin can delete a post.");
+  }
+
+  const id = String(formData.get("postId") ?? "");
+  if (!id) throw new Error("Missing post id.");
+
+  await prisma.post.delete({ where: { id } });
+
+  revalidatePath("/calendar");
+  revalidatePath("/");
+  redirect("/calendar");
 }

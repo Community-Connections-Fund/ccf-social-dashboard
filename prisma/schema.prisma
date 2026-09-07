@@ -43,6 +43,8 @@ model Post {
   platform      String?
   caption       String?
   graphicStatus String    @default("NOT_STARTED")
+  // Link to the finished graphic — usually a Canva export sitting in Drive.
+  graphicUrl    String?
   publishDate   DateTime?
 
   contentPillarId String?
@@ -101,12 +103,20 @@ model ContentBankEntry {
 }
 
 model Alumnus {
-  id                  String  @id @default(cuid())
-  name                String
+  id String @id @default(cuid())
+  // Stored separately so lists can sort by surname and spotlight copy can use a
+  // first name alone. lastName is optional: mononyms exist, and the CSV importer
+  // flags rather than invents one.
+  firstName           String
+  lastName            String?
   cohortYear          Int?
   currentOrganization String?
   currentRole         String?
   linkedin            String?
+  // Contact details are gated to Admin/Editor — see canViewContactInfo in
+  // src/lib/workflow.ts. Never select these for list views.
+  personalEmail       String?
+  workEmail           String?
   featuredStatus      String  @default("NOT_FEATURED")
   careerUpdates       String?
   awards              String?
