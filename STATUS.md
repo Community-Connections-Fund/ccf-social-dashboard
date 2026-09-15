@@ -120,8 +120,18 @@ fewest hours.
 
 ## Security
 
+**Row Level Security is enabled on every table, and must stay enabled.** Supabase exposes
+the `public` schema over PostgREST to anyone holding the publishable key — a key designed
+to be public. Until 15 September the alumni table, email addresses included, was readable
+that way without signing in, bypassing this app entirely. RLS with no policies denies the
+`anon` and `authenticated` roles everything; Prisma is unaffected because it connects as
+the table owner. Re-probe with a REST call using the publishable key if you ever suspect
+regression. **Any new table needs `ALTER TABLE "X" ENABLE ROW LEVEL SECURITY;` in its
+migration** — Prisma will not add it for you.
+
 An adversarial review was run and **did not finish** — most of its agents died on a usage
-limit. Three findings from the lenses that completed were fixed:
+limit. It also looked only at application code, which is why it missed the RLS exposure
+entirely. Three findings from the lenses that completed were fixed:
 
 - Seven pages rendered live data without resolving the session, trusting `proxy.ts` alone.
   Every page now calls `getCurrentUser()`.
