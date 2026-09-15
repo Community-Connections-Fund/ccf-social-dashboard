@@ -129,6 +129,13 @@ the table owner. Re-probe with a REST call using the publishable key if you ever
 regression. **Any new table needs `ALTER TABLE "X" ENABLE ROW LEVEL SECURITY;` in its
 migration** — Prisma will not add it for you.
 
+**The Supabase linter's "leaked password protection disabled" warning is knowingly left
+open.** That feature is Pro-plan only ($25/month) and blocks users from choosing a password
+found in a public breach dump — worth paying for when many people set their own passwords,
+not for a handful of accounts. The free equivalent is checking a password at
+haveibeenpwned.com/Passwords before using it. Revisit when staff accounts are added, which
+is also when Pro's better backup retention starts to matter.
+
 An adversarial review was run and **did not finish** — most of its agents died on a usage
 limit. It also looked only at application code, which is why it missed the RLS exposure
 entirely. Three findings from the lenses that completed were fixed:
