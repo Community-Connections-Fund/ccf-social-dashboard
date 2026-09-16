@@ -136,9 +136,13 @@ not for a handful of accounts. The free equivalent is checking a password at
 haveibeenpwned.com/Passwords before using it. Revisit when staff accounts are added, which
 is also when Pro's better backup retention starts to matter.
 
-An adversarial review was run and **did not finish** — most of its agents died on a usage
-limit. It also looked only at application code, which is why it missed the RLS exposure
-entirely. Three findings from the lenses that completed were fixed:
+Two adversarial audits were run; both died on usage limits. Their surviving findings, plus
+the lenses that never ran, were completed by hand on 15-16 September. **Note:** the second
+audit reported 13 findings as "refuted" — that was a bug in the audit script, which counted
+a finding with zero surviving verdicts as refuted rather than unverified. Nothing was
+actually refuted; they were checked manually instead.
+
+Fixed over the two rounds:
 
 - Seven pages rendered live data without resolving the session, trusting `proxy.ts` alone.
   Every page now calls `getCurrentUser()`.
@@ -146,24 +150,50 @@ entirely. Three findings from the lenses that completed were fixed:
   One forgotten variable on a deployment would have published the dashboard. It now fails
   closed.
 - `updateAlumnus` wrote contact fields unconditionally, so a Reviewer saving an alumni
-  record silently erased both email addresses. Contact fields are now written only by roles
-  that can see them.
+  record silently erased both email addresses.
+- **RLS was off** — the whole database was readable over Supabase's REST API with the
+  publishable key. See the RLS note above; this was the worst of them.
+- Session cookies lacked `HttpOnly`, so injected script could have lifted a live session.
+  Now `HttpOnly`, `Secure` in production, `SameSite=Lax`.
+- `proxy.ts` discarded Supabase's cookie writes when redirecting, so an invalidated session
+  cookie was never cleared from the browser.
+- The identity lookup used `findFirst` with an `OR`, which two rows can satisfy — the same
+  person could resolve to different roles on different requests. Now ordered: an existing
+  `authId` binding always wins.
+- Sign-out was unreachable below 768px, since the sidebar holding it is hidden on mobile.
+- **`set-admin` would have locked the charity out.** Changing the admin address left
+  `authId` bound to the old Supabase account, and `session.ts` refuses a mismatch rather
+  than rebinding — an admin record nobody could sign into, unfixable from the app. It now
+  clears `authId` when the address moves.
+- The last-admin guards only prevented demoting *yourself*, so two admins could demote each
+  other to zero. Both paths now count remaining admins.
+- The CSV importer had no size limit; capped at 5MB.
 
-A follow-up manual check found no API route handlers, every Server Action guarded, no
-unscoped `include:` reaching alumni data, and no logging of personal data.
-
-**Still unreviewed:** deeper PII exposure paths, and account lifecycle edge cases (email
-changes after linking, recycled addresses).
+Checked and clean: no `dangerouslySetInnerHTML` anywhere, no raw SQL, no open redirects, no
+API route handlers, every Server Action role-guarded, no personal data in logs, no secret in
+any commit or in the browser bundle, and of the other Supabase surfaces reachable with the
+publishable key, Storage has no buckets while Realtime and the schema dump refuse it.
 
 Verified on the live site: every route redirects a signed-out visitor, HTTP upgrades to
-HTTPS, HSTS is on, and no database credential appears anywhere in the 588KB the browser
-receives.
+HTTPS, HSTS and the security headers are served.
 
-**Open design question:** `requireEditor()` blocks only VIEWER, so a REVIEWER can create,
-edit and delete content, while the Staff page describes Reviewers as people who approve
-posts. Moot while only the admin account exists. Decide before adding a second person.
+### Still open
 
----
+- **Public signup is enabled on the Supabase project** (`disable_signup: false`), which
+  contradicts the no-self-signup model. A stranger who signs up still gets nothing without a
+  staff row, but it lets anyone fill the auth table and becomes dangerous if email
+  auto-confirm is ever switched on. Turn off under Authentication -> Sign In / Providers ->
+  Email.
+- **The database password needs rotating.** It was surfaced into a chat transcript. Do it
+  with the real-data import so there is one disruption: reset in Supabase, update `.env` and
+  both Vercel variables, redeploy.
+- **Is two-factor enabled on the GitHub account?** Never confirmed. Vercel and Supabase both
+  authenticate through it, so that one account is the master key to code, hosting and data.
+- `requireEditor()` blocks only VIEWER, so a REVIEWER can create, edit and delete content
+  while the Staff page describes them as people who approve posts. Moot with one account.
+- An admin can approve a post they drafted. Enforcing separation of duties would block all
+  work at current staffing.
+- Alumni edits are not audit-logged the way post approvals are.
 
 ## Where the important logic lives
 
