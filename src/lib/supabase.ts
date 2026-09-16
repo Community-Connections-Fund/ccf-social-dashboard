@@ -15,6 +15,21 @@ function requiredEnv(name: string): string {
  * Supabase client bound to the request's cookies, so it can read the signed-in
  * user and refresh an expiring session.
  */
+/**
+ * Hardening applied to every Supabase auth cookie.
+ *
+ * The library leaves these off by default because a browser-side Supabase client
+ * needs to read the token. This app has no browser-side client — every Supabase
+ * call happens on the server — so the token has no reason to be reachable from
+ * JavaScript, and making it unreachable means an injected script cannot steal a
+ * session.
+ */
+export const SESSION_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+};
+
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
@@ -27,7 +42,7 @@ export async function createSupabaseServerClient() {
         setAll: (cookiesToSet) => {
           try {
             for (const { name, value, options } of cookiesToSet) {
-              cookieStore.set(name, value, options);
+              cookieStore.set(name, value, { ...options, ...SESSION_COOKIE_OPTIONS });
             }
           } catch {
             // Server Components cannot set cookies. Session refresh happens in

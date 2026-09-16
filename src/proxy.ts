@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE_OPTIONS } from "@/lib/supabase";
 
 // Next 16 calls this Proxy; it was Middleware in earlier versions.
 //
@@ -47,7 +48,10 @@ export async function proxy(request: NextRequest) {
         }
         response = NextResponse.next({ request });
         for (const { name, value, options } of cookiesToSet) {
-          response.cookies.set(name, value, options);
+          response.cookies.set(name, value, {
+            ...options,
+            ...SESSION_COOKIE_OPTIONS,
+          });
         }
       },
     },
@@ -60,7 +64,17 @@ export async function proxy(request: NextRequest) {
   if (!user && !isPublicPath(request.nextUrl.pathname)) {
     const login = request.nextUrl.clone();
     login.pathname = "/login";
-    return NextResponse.redirect(login);
+    const redirect = NextResponse.redirect(login);
+
+    // Carry over anything Supabase wrote while checking the session. Returning a
+    // bare redirect discards those Set-Cookie headers — including the ones that
+    // clear an invalidated token — so a dead session cookie would stay in the
+    // browser and be re-sent on every subsequent request.
+    for (const cookie of response.cookies.getAll()) {
+      redirect.cookies.set(cookie);
+    }
+
+    return redirect;
   }
 
   return response;

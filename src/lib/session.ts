@@ -32,9 +32,16 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   if (error || !user?.email) return null;
 
   const email = user.email.toLowerCase();
-  const staff = await prisma.user.findFirst({
-    where: { OR: [{ authId: user.id }, { email }] },
-  });
+
+  // Resolved in a fixed order rather than with a single OR. An OR lets two
+  // different staff rows satisfy the same query — one bound by authId, another
+  // merely sharing the address — and findFirst would then pick between them
+  // arbitrarily, so the same person could get different roles on different
+  // requests. An existing binding always wins; matching by address is only how an
+  // account is claimed the first time.
+  const staff =
+    (await prisma.user.findUnique({ where: { authId: user.id } })) ??
+    (await prisma.user.findUnique({ where: { email } }));
 
   // Authenticated with Supabase but not on staff: no access.
   if (!staff) return null;
