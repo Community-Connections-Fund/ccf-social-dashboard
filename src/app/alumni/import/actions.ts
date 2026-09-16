@@ -38,6 +38,7 @@ export type ImportState =
   | { stage: "done"; created: number; updated: number; skipped: number };
 
 const MAX_PREVIEW_ROWS = 50;
+const MAX_CSV_BYTES = 5_000_000;
 
 async function classify(parsedRows: ParsedRow[]) {
   const existing = await prisma.alumnus.findMany({
@@ -107,6 +108,16 @@ export async function importAlumni(
     const file = formData.get("file");
     if (!(file instanceof File) || file.size === 0) {
       return { stage: "error", message: "Choose a CSV file first." };
+    }
+
+    // The whole file is parsed into memory and held again between preview and
+    // commit. A few thousand alumni is well under a megabyte, so anything past
+    // this is a mistake or an attempt to exhaust the server.
+    if (file.size > MAX_CSV_BYTES) {
+      return {
+        stage: "error",
+        message: `That file is ${(file.size / 1_000_000).toFixed(1)}MB. The limit is ${MAX_CSV_BYTES / 1_000_000}MB — an alumni export should be far smaller.`,
+      };
     }
 
     const csvText = await file.text();

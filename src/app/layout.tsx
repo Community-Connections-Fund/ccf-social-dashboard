@@ -100,7 +100,18 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           </aside>
 
           <div className="flex min-w-0 flex-1 flex-col">
-            <header className="border-b border-slate-200 bg-white px-6 py-3 md:hidden">
+            {/* The sidebar holding sign-out is hidden below md, so without this
+                there is no way to end a session on a phone — the case where
+                signing out matters most, on a device that gets handed around. */}
+            <header className="flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 py-3 md:hidden">
+              <form action={signOutAction} className="order-2 shrink-0">
+                <button
+                  type="submit"
+                  className="text-xs font-medium text-slate-500 underline underline-offset-2"
+                >
+                  Sign out
+                </button>
+              </form>
               <nav className="flex flex-wrap gap-x-4 gap-y-1">
                 {NAV.map((item) => (
                   <Link

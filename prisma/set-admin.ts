@@ -29,20 +29,34 @@ async function main() {
     return;
   }
 
-  // Reuse the seeded admin record if it is still the untouched placeholder, so we
-  // move that account rather than leaving an orphan that can still sign in.
-  const seeded = existingAdmins.find((user) => user.authId === null);
+  // Move an existing admin rather than adding a second one, so the old address
+  // cannot still sign in. Prefer an unclaimed record; otherwise move the sole
+  // admin, which is the case when changing the address the dashboard is owned by.
+  const target =
+    existingAdmins.find((user) => user.authId === null) ??
+    (existingAdmins.length === 1 ? existingAdmins[0] : null);
 
-  if (seeded) {
-    await prisma.user.update({
-      where: { id: seeded.id },
-      data: { email, name },
-    });
-    console.log(`Admin account moved from ${seeded.email} to ${email}.`);
-  } else {
+  if (!target) {
     await prisma.user.create({ data: { email, name, role: "ADMIN" } });
     console.log(`Added ${email} as an admin.`);
+    return;
   }
+
+  // authId must be cleared along with the address. It binds this record to one
+  // Supabase account, and signing in from a different one is refused outright
+  // rather than rebound — so moving the email without clearing it would leave an
+  // admin record nobody on earth can sign into, with no way to undo it from the
+  // app. This is the step that turns an email change into a locked-out charity.
+  await prisma.user.update({
+    where: { id: target.id },
+    data: { email, name, authId: null },
+  });
+
+  console.log(
+    `Admin account moved from ${target.email} to ${email}.\n` +
+      `Create a Supabase user for ${email} — it will be linked on first sign-in.\n` +
+      `${target.email} can no longer sign in.`,
+  );
 }
 
 main()

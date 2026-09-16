@@ -41,7 +41,21 @@ export async function updateStaffRole(formData: FormData) {
   const id = String(formData.get("userId") ?? "");
   const role = roleFrom(formData);
 
-  // Removing your own admin rights locks the last administrator out of this page.
+  // Guarding only against demoting *yourself* leaves the organisation one click
+  // from having no administrator: two admins can demote each other, and nobody
+  // can then reach this page to fix it. Count instead.
+  if (role !== "ADMIN") {
+    const target = await prisma.user.findUnique({ where: { id } });
+    if (target?.role === "ADMIN") {
+      const admins = await prisma.user.count({ where: { role: "ADMIN" } });
+      if (admins <= 1) {
+        throw new Error(
+          "That is the only administrator. Promote someone else first.",
+        );
+      }
+    }
+  }
+
   if (id === admin.id && role !== "ADMIN") {
     throw new Error("You cannot remove your own admin role.");
   }
@@ -56,6 +70,14 @@ export async function removeStaff(formData: FormData) {
 
   if (id === admin.id) {
     throw new Error("You cannot remove yourself.");
+  }
+
+  const target = await prisma.user.findUnique({ where: { id } });
+  if (target?.role === "ADMIN") {
+    const admins = await prisma.user.count({ where: { role: "ADMIN" } });
+    if (admins <= 1) {
+      throw new Error("That is the only administrator and cannot be removed.");
+    }
   }
 
   // Posts and approval history point at this person. Detach rather than delete,
