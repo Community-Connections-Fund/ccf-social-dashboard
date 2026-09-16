@@ -1,6 +1,6 @@
 # CCF Social Media Dashboard — where things stand
 
-Last updated: 7 September 2026 · **Live and deployed**
+Last updated: 16 September 2026 · **Live and deployed**
 
 A social media command centre for Community Connections Fund: content calendar,
 approval workflow, alumni archive, content bank, asset links, analytics.
